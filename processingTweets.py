@@ -32,9 +32,25 @@ def checkLimit(session):
         '''
         回数制限を取得
         '''
-        url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
-        res = session.get(url)
-        return json.loads(res.text)
+        unavailableCnt = 0
+        while True:
+            url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+            res = session.get(url)
+            if res.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    raise Exception('Twitter API error %d' % res.status_code)
+ 
+                unavailableCnt += 1
+                print ('Service Unavailable 503')
+                waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+                continue
+ 
+            unavailableCnt = 0
+ 
+            if res.status_code != 200:
+                raise Exception('Twitter API error %d' % res.status_code)
+            return json.loads(res.text)
     
 def waitUntilReset(reset):
         '''
@@ -75,13 +91,17 @@ def processing_reply(tweet, text):
 
 def checkText(text):
     '''
-    無効なurl、リプライ、ハッシュタグが存在するときはtrueを返す
+    url、リプライ、ハッシュタグが残っているときはTrueを返す。
     '''
-    if text.find('http') != -1:
+    if text.find('＠') != -1:
         return True
     if text.find('@') != -1:
         return True
+    if text.find('＃') != -1:
+        return True
     if text.find('#') != -1:
+        return True
+    if text.find('http') != -1:
         return True
     return False
 
@@ -193,15 +213,17 @@ for tweets in list:
             print(replyText)
     print("%f人完了" % numOfFinished)
     numOfFinished += 1
-                
-fn = codecs.open('normal.txt', 'w', 'utf-8')
-fr = codecs.open('reply.txt', 'w', 'utf-8')
-frs = codecs.open('replySource.txt', 'w', 'utf-8')
-
-fn.write(normalTweets)
-fr.write(replyTweets)
-frs.write(replySourceTweets)
-
-fn.close()
-fr.close()
-frs.close()
+    if numOfFinished != 0 and numOfFinished%100 == 0:
+        nName = 'normal' + str(numOfFinished/100) + '.txt'
+        rName = 'reply' + str(numOfFinished/100) + '.txt'
+        rsName = 'replySource' + str(numOfFinished/100) + '.txt'
+        fn = codecs.open(nName, 'w', 'utf-8')
+        fr = codecs.open(rName, 'w', 'utf-8')
+        frs = codecs.open(rsName, 'w', 'utf-8')
+        fn.write(normalTweets)
+        fr.write(replyTweets)
+        frs.write(replySourceTweets)
+        
+        fn.close()
+        fr.close()
+        frs.close()

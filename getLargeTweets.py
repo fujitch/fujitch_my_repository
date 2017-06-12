@@ -27,9 +27,25 @@ def checkLimit(session):
         '''
         回数制限を取得
         '''
-        url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
-        res = session.get(url)
-        return json.loads(res.text)
+        unavailableCnt = 0
+        while True:
+            url = "https://api.twitter.com/1.1/application/rate_limit_status.json"
+            res = session.get(url)
+            if res.status_code == 503:
+                # 503 : Service Unavailable
+                if unavailableCnt > 10:
+                    raise Exception('Twitter API error %d' % res.status_code)
+ 
+                unavailableCnt += 1
+                print ('Service Unavailable 503')
+                waitUntilReset(time.mktime(datetime.datetime.now().timetuple()) + 30)
+                continue
+ 
+            unavailableCnt = 0
+ 
+            if res.status_code != 200:
+                raise Exception('Twitter API error %d' % res.status_code)
+            return json.loads(res.text)
  
 def waitUntilReset(reset):
         '''
