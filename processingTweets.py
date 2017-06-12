@@ -155,7 +155,8 @@ if remaining - 5 < 1:
     print(remaining)
 offsetCount = 0
 numOfFinished = 0
-for tweets in list:
+for numnum in range(101, len(list)):
+    tweets = list[numnum]
     for tweet in tweets:
         text = tweet['text']
         #埋め込みリツイートは難しいので除外する

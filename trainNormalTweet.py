@@ -89,7 +89,7 @@ for epoch in range(epochs):
     # 順伝搬
     loss = 0
     for i in range(maxLength):
-        loss += model.forward_one_step(model, x_data=keysBatchList[:,i], y_data=keysBatchList[:,i])
+        loss += model(model, x_data=keysBatchList[:,i], y_data=keysBatchList[:,i])
     # 誤差逆伝搬
     loss.backward()
     loss.unchain_backward()
